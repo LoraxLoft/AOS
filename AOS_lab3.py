@@ -1,111 +1,131 @@
 import math
 import inspect
 
-x = [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
-y = [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 
 inf = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 inf_ = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
-def cos(n):
-    return math.cos(n[0])
+def conv(mnt):
+    mnt_norm = mnt % 1 - mnt // 1 % 2
+    sign = 1 if str(mnt_norm)[0] == "-" else 0
+    mnt_bin = [sign, 0]
+    mnt_norm = abs(mnt_norm)
+    if mnt_norm == 1:
+        mnt_bin += [1, 1, 1, 1, 1, 1, 1]
+    else:
+        for i in range(7):
+            mnt_bin.append(int(mnt_norm * 2 // 1))
+            mnt_norm = mnt_norm * 2 % 1
+    return mnt_bin
 
 
-def ln(n):
-    return math.log(n[0], math.e)
-
-
-def plus(n, m=0):
-    res = [0] * 11
-    if n[0][0] ^ n[1][0]:
-        print('yes')
-        return minus(n)
-    buf1 = 0
-    for k in range(10, 1, -1):
-        res[k] = (n[0][k] + n[1][k]) % 2
-        buf1 = (n[0][k] + n[1][k]) / 2
-    res[0] = n[0][0]
-    if buf1:
-        ############
-        for h in range(10, 1, -1):
-            res[h] = (res[h] + 1) % 2
-        res[0] = (res[0] + 1) % 2
-        res = plus([[(res[0] + 1) % 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], res])
-   #########################
-    return res
-
-
-def abs_equals_or_larger(n, m=0):
-    for l in range(2, 10):
-        if n[0][l] > n[1][l]:
-            return True
-        if n[0][l] < n[1][l]:
-            return False
-    return True
-
-
-def abs_equals(n, m=0):
-    for m in range(2, 10):
-        if n[0][m] != n[1][m]:
-            return False
-    return True
-
-
-# plus([x, y])
-def minus(n, m=0):
-    res = [0] * 11
-    if not abs_equals_or_larger(n):
-        n.reverse()
-        return minus(n)
-    for p in range(10, 1, -1):
-        if n[0][p] < n[1][p]:
-            n[0][p-1] -= 1
-            n[0][p] += 2
-        res[p] = n[0][p] - n[1][p]
-    if n[0][1] == -1:
-        "Some error occurred"
-    res[0] = n[0][0]
-    return res
-
-
-def div(n, m=0):
-    return n[0] / n[1]
-
-
-def mult(n, m=0):
-    if n[1] == -1:
-        n[0][0] = (n[0][0] + 1) % 2
-        return n[0]
-    return 0
+def in_params(arg):
+    if True:
+        if arg.replace(".", "", 1).isdigit() or (arg[0] == "-" and arg[1:].replace(".", "", 1).isdigit()):
+            arg_bin = conv(float(arg))
+        elif arg == "inf" or arg == "+inf":
+            arg_bin = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        elif arg == "-inf":
+            arg_bin = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        elif arg == "qNaN":
+            arg_bin = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        else:
+            arg_bin = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    return arg_bin
 
 
 def converter(n):
     if n[1]:
-        pass
+        if n[2:11] == [0, 0, 0, 0, 0, 0, 0, 0, 0]:
+            res = "inf"
+            if n[0]:
+                res = "-" + res
+        else:
+            res = "NaN"
+            if not n[0]:
+                res = "q" + res
     else:
-        res = int(''.join([str(elem) for elem in n[2:11]]), 2)
+        if n[2:].count(1) == 9:
+            res = 1
+        else:
+            res = 0
+            it = 1
+            for m in n[2:]:
+                res += m * (0.5 ** it)
+                it += 1
         if n[0]:
-            res += -1
+            res *= -1
         return res
 
 
-print(converter(x))
+def to_float(args):
+    i = 0
+    for bits in args:
+        args[i] = converter(bits)
+        i += 1
+    return args
 
-x = 5
-y = 9
-a = [mult, 7, div, plus, math.pi, ln, x, cos, y]
-j = len(a) - 1
-while j >= 0:
-    if isinstance(a[j], bytes) or isinstance(a[j], float) or isinstance(a[j], int):
-        buf = a.pop(j)
-        a.append(buf)
-    else:
-        arg = []
-        func = a.pop(j)
-        for i in range(len(inspect.getfullargspec(func)[0])):
-            arg.append(a.pop())
-        a.append(func(arg))
-    j -= 1
 
-print(a[0])
+def cos(n):
+    n = to_float(n)
+    return in_params(str(math.cos(n[0])))
+
+
+def ln(n):
+    n = to_float(n)
+    return in_params(str(math.log(n[0], math.e)))
+
+
+def plus(n, m=0):
+    n = to_float(n)
+    return in_params(str(n[0] + n[1]))
+
+
+def div(n, m=0):
+    n = to_float(n)
+    return in_params(str(n[0] / n[1]))
+
+
+def mult(n, m=0):
+    n = to_float(n)
+    return in_params(str(n[0] * n[1]))
+
+
+x = input("X: ")
+y = input("Y: ")
+print()
+
+print("Processor work starts...")
+a = [mult, in_params(str(7)), div, plus, in_params(str(math.pi)), ln, in_params(x), cos, in_params(y)]
+a_str = ['mult', '7', 'div', 'plus', 'pi', 'ln', x, 'cos', y]
+print(a_str)
+try:
+    j = len(a) - 1
+    while j >= 0:
+        if isinstance(a[j], list):
+            buf = a.pop(j)
+            a.append(buf)
+            buf = a_str.pop(j)
+            a_str.append(buf)
+            print(f"Push({buf})")
+        else:
+            arg = []
+            func = a.pop(j)
+            print(a_str.pop(j), end='(')
+            for i in range(len(inspect.getfullargspec(func)[0])):
+                if i:
+                    print(', ', end=' ')
+                arg.append(a.pop())
+                print(a_str.pop(), end='')
+            print(')')
+            a.append(func(arg))
+            a_str.append(str(to_float(a[len(a)-1:])[0]))
+        j -= 1
+        print(a_str)
+except ValueError:
+    print("\nNumbers printed do not suit the functions domain")
+except TypeError:
+    print("\nX and Y are numbers, not letters. If you typed + in positive numbers reduce them.")
+else:
+    print(f"...processor work ends.\n\nResult: {a_str[0]}")
